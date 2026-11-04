@@ -1,20 +1,55 @@
-import 'react-native-gesture-handler'; 
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { ThemeProvider } from './src/contexts/ThemeContext';
-import Home from './src/pages/Home';
+import 'react-native-gesture-handler';
+import { StatusBar } from 'expo-status-bar';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Inicializacao from './src/components/Inicializacao';
+import TimerVisual from './src/components/TimerVisual';
+import { DataProvider, useDados } from './src/contexts/DataContext';
+import { FeedbackProvider } from './src/contexts/FeedbackContext';
+import { useTheme } from './src/contexts/ThemeContext';
+import { TimerProvider } from './src/contexts/TimerContext';
+import Navegacao from './src/navigation';
 
-const Stack = createStackNavigator();
+function Conteudo() {
+  const tema = useTheme();
+  return (
+    <TimerProvider>
+      <FeedbackProvider>
+        <StatusBar style={tema.escuro ? 'light' : 'dark'} />
+        <Navegacao />
+        <TimerVisual />
+        <Inicializacao />
+      </FeedbackProvider>
+    </TimerProvider>
+  );
+}
+
+function Carregamento() {
+  const { dados } = useDados();
+  if (!dados) {
+    return (
+      <View style={estilos.carregando}>
+        <ActivityIndicator size="large" accessibilityLabel="Carregando" />
+      </View>
+    );
+  }
+  return <Conteudo />;
+}
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Home" component={Home} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </ThemeProvider>
+    <GestureHandlerRootView style={estilos.raiz}>
+      <SafeAreaProvider>
+        <DataProvider>
+          <Carregamento />
+        </DataProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const estilos = StyleSheet.create({
+  raiz: { flex: 1 },
+  carregando: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+});

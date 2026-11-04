@@ -1,71 +1,55 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { FontAwesome5 } from '@expo/vector-icons';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { DIAS_SEMANA } from '../../domain/rotinas';
+import BotaoIcone from '../BotaoIcone';
 
-export default function RotinaItem({ nome, onEditar, onExcluir }) {
-  const { colors } = useTheme();
+const descreverDias = (dias) => {
+  if (dias.length === 0) return 'Sem dias definidos';
+  if (dias.length === 7) return 'Todos os dias';
+  return DIAS_SEMANA.filter((d) => dias.includes(d.valor))
+    .map((d) => d.rotulo.replace('.', ''))
+    .join(', ');
+};
+
+export default function RotinaItem({ rotina, onAbrir, onEditar, onExcluir }) {
+  const tema = useTheme();
 
   return (
-    <View style={styles.container}>
-      {/* Botão da Rotina */}
-      <TouchableOpacity 
-        style={[styles.rotinaButton, { backgroundColor: colors.primary }]}
-        onPress={() => { /* Selecionar rotina - implementar depois */ }}
-      >
-        <Text style={[styles.rotinaText, { color: colors.textLight }]} numberOfLines={1}>
-          {nome.toUpperCase()}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Ações */}
-      <View style={styles.actions}>
-        <TouchableOpacity 
-          style={[styles.actionButton, { backgroundColor: colors.secondary }]}
-          onPress={onEditar}
+    <View style={[estilos.linha, { backgroundColor: tema.linha.fundo }]}>
+      <Text style={[estilos.dias, { color: tema.linha.textoSuave }]}>{descreverDias(rotina.diasSemana)}</Text>
+      <View style={estilos.conteudo}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Abrir ${rotina.nome}`}
+          onPress={onAbrir}
+          style={({ pressed }) => [estilos.pilula, { backgroundColor: tema.pilula.fundo, opacity: pressed ? 0.75 : 1 }]}
         >
-          <FontAwesome5 name="pencil-alt" size={20} color={colors.text} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.actionButton, { backgroundColor: colors.danger }]}
-          onPress={onExcluir}
-        >
-          <FontAwesome5 name="trash" size={20} color={colors.textLight} />
-        </TouchableOpacity>
+          <Text numberOfLines={2} style={[estilos.nome, { color: tema.pilula.texto }]}>
+            {rotina.nome.toUpperCase()}
+          </Text>
+        </Pressable>
+        <BotaoIcone icone="pencil" rotulo={`Editar ${rotina.nome}`} superficie={tema.pilula} onPress={onEditar} />
+        <BotaoIcone icone="trash-can-outline" rotulo={`Excluir ${rotina.nome}`} superficie={tema.pilula} onPress={onExcluir} />
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 8,
-    paddingHorizontal: 15,
-  },
-  rotinaButton: {
+const estilos = StyleSheet.create({
+  linha: { paddingTop: 10, paddingBottom: 18, marginBottom: 12 },
+  dias: { fontSize: 15, fontWeight: '500', marginLeft: 20, marginBottom: 8 },
+  conteudo: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingRight: 12 },
+  pilula: {
     flex: 1,
-    height: 60,
-    borderRadius: 30,
+    minHeight: 60,
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    marginRight: 10,
+    paddingLeft: 20,
+    paddingRight: 16,
+    paddingVertical: 8,
+    borderTopRightRadius: 30,
+    borderBottomRightRadius: 30,
+    elevation: 2,
+    boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
   },
-  rotinaText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  actionButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  nome: { fontSize: 17, fontWeight: '700' },
 });

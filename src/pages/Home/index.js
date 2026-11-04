@@ -1,119 +1,65 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Alert, SafeAreaView } from 'react-native';
-import { FontAwesome5 } from '@expo/vector-icons';
-import { useTheme } from '../../contexts/ThemeContext';
-import RotinaItem from '../../components/RotinaItem';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
+import Cabecalho from '../../components/Cabecalho';
 import Rodape from '../../components/Rodape';
+import RotinaItem from '../../components/RotinaItem';
+import { useDados } from '../../contexts/DataContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
-export default function Home() {
-  const { colors } = useTheme();
-  
-  // Dados mockados para visualização inicial
-  const [rotinas, setRotinas] = useState([
-    { id: '1', nome: 'Rotina em Casa' },
-    { id: '2', nome: 'Rotina na Casa da Vó' },
-  ]);
-  
-  const [rotinaSelecionada, setRotinaSelecionada] = useState(null);
+// Lista de rotinas: tela inicial do app (RF005).
+export default function Home({ navigation }) {
+  const tema = useTheme();
+  const { dados, atualizar, setRotinaTocadaId } = useDados();
+  const { confirmar, mostrarMensagem } = useFeedback();
 
-  const handleExcluir = (id) => {
-    Alert.alert(
-      'Excluir Rotina',
-      'Tem certeza que deseja excluir esta rotina?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Excluir', 
-          style: 'destructive',
-          onPress: () => {
-            setRotinas(rotinas.filter(r => r.id !== id));
-            if (rotinaSelecionada === id) setRotinaSelecionada(null);
-            Alert.alert('Sucesso', 'Rotina excluída!');
-          }
-        }
-      ]
-    );
-  };
-
-  const handleEditar = (id) => {
-    // Navegação futura para a tela de edição
-    Alert.alert('Editar', `Editar rotina ID: ${id} (Tela em construção)`);
-  };
-
-  const handleNovaRotina = () => {
-    Alert.alert('Nova Rotina', 'Tela de criação em construção');
-  };
-
-  const handleVerRotina = () => {
-    if (rotinaSelecionada) {
-      Alert.alert('Ver Rotina', `Visualizando rotina ID: ${rotinaSelecionada}`);
-    }
+  const excluir = async (rotina) => {
+    const sim = await confirmar({
+      titulo: 'Excluir rotina',
+      mensagem: `Tem certeza que deseja excluir "${rotina.nome}"?`,
+    });
+    if (!sim) return;
+    const resultado = atualizar((d) => ({ ...d, rotinas: d.rotinas.filter((r) => r.id !== rotina.id) }));
+    if (resultado.ok) mostrarMensagem('Rotina excluída.');
+    else mostrarMensagem(resultado.mensagem, 'erro');
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Cabeçalho Customizado */}
-      <View style={[styles.header, { backgroundColor: colors.secondary }]}>
-        <TouchableOpacity style={styles.settingsButton}>
-          <FontAwesome5 name="cog" size={28} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>ROTINA VISUAL</Text>
-        <View style={{ width: 28 }} /> {/* Espaçador para centralizar o título */}
-      </View>
-
-      {/* Lista de Rotinas */}
+    <View style={[estilos.tela, { backgroundColor: tema.fundo.fundo }]}>
+      <Cabecalho />
       <FlatList
-        data={rotinas}
-        keyExtractor={(item) => item.id}
+        data={dados.rotinas}
+        keyExtractor={(rotina) => rotina.id}
+        contentContainerStyle={estilos.lista}
         renderItem={({ item }) => (
-          <RotinaItem 
-            nome={item.nome} 
-            onEditar={() => handleEditar(item.id)}
-            onExcluir={() => handleExcluir(item.id)}
+          <RotinaItem
+            rotina={item}
+            onAbrir={() => {
+              setRotinaTocadaId(item.id);
+              navigation.navigate('Rotina', { rotinaId: item.id });
+            }}
+            onEditar={() => navigation.navigate('RotinaForm', { rotinaId: item.id })}
+            onExcluir={() => excluir(item)}
           />
         )}
-        contentContainerStyle={{ paddingVertical: 20 }}
         ListEmptyComponent={
-          <Text style={[styles.emptyText, { color: colors.text }]}>
-            Nenhuma rotina criada ainda.
+          <Text style={[estilos.vazio, { color: tema.fundo.texto }]}>
+            Nenhuma rotina criada ainda. Toque no calendário abaixo para criar a primeira.
           </Text>
         }
       />
-
-      {/* Rodapé Fixo */}
-      <Rodape 
-        onVerRotina={handleVerRotina}
-        onNovaRotina={handleNovaRotina}
-        onPictogramas={() => Alert.alert('Pictogramas', 'Tela em construção')}
-        verRotinaDisabled={!rotinaSelecionada}
+      <Rodape
+        centro={{
+          icone: 'calendar-plus',
+          rotulo: 'Nova rotina',
+          onPress: () => navigation.navigate('RotinaForm'),
+        }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    paddingTop: 40, // Ajuste para SafeArea no Android
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  settingsButton: {
-    padding: 5,
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 50,
-    fontSize: 16,
-    opacity: 0.6,
-  },
+const estilos = StyleSheet.create({
+  tela: { flex: 1 },
+  lista: { paddingTop: 12, flexGrow: 1 },
+  vazio: { fontSize: 18, lineHeight: 26, textAlign: 'center', marginTop: 48, marginHorizontal: 32 },
 });

@@ -1,74 +1,127 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useDados } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useModo } from '../../hooks/useModo';
 
-export default function Rodape({ onVerRotina, onNovaRotina, onPictogramas, verRotinaDisabled }) {
-  const { colors } = useTheme();
+function BotaoLateral({ rotulo, onPress, desativado, children }) {
+  const tema = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={rotulo}
+      accessibilityState={{ disabled: !!desativado }}
+      disabled={desativado}
+      onPress={onPress}
+      style={({ pressed }) => [
+        estilos.lateral,
+        { backgroundColor: tema.controle.fundo, opacity: desativado ? 0.45 : pressed ? 0.75 : 1 },
+      ]}
+    >
+      {children}
+      <Text numberOfLines={1} adjustsFontSizeToFit style={[estilos.rotulo, { color: tema.controle.texto }]}>
+        {rotulo}
+      </Text>
+    </Pressable>
+  );
+}
+
+// Rodapé fixo das telas. "centro" recebe { icone | texto, rotulo, onPress, desativado }.
+export default function Rodape({ centro, pictogramasDesativado, aoVerRotina }) {
+  const tema = useTheme();
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const { dados, rotinaTocadaId } = useDados();
+  const { modo, entrarVisualizacao, sairVisualizacao } = useModo();
+  const corIcone = tema.controle.texto;
+  const rotinaTocada = dados.rotinas.some((r) => r.id === rotinaTocadaId);
+  const superficieCentro = tema.pilula;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.secondary }]}>
-      {/* Botão Ver Rotina */}
-      <TouchableOpacity 
-        style={[styles.button, verRotinaDisabled && styles.disabledButton]}
-        onPress={onVerRotina}
-        disabled={verRotinaDisabled}
-      >
-        <FontAwesome5 name="user-friends" size={24} color={colors.text} />
-        <Text style={[styles.buttonText, { color: colors.text }]}>VER ROTINA</Text>
-      </TouchableOpacity>
+    <View style={[estilos.rodape, { backgroundColor: tema.fundo.fundo, paddingBottom: insets.bottom + 12 }]}>
+      {modo === 'edicao' ? (
+        <BotaoLateral
+          rotulo="VER ROTINA"
+          desativado={!rotinaTocada}
+          onPress={aoVerRotina ?? entrarVisualizacao}
+        >
+          <View style={estilos.iconeDuplo}>
+            <MaterialCommunityIcons name="account" size={34} color={corIcone} style={estilos.pessoa} />
+            <MaterialCommunityIcons name="puzzle" size={22} color={corIcone} style={estilos.peca} />
+          </View>
+        </BotaoLateral>
+      ) : (
+        <BotaoLateral rotulo="MODO EDIÇÃO" onPress={sairVisualizacao}>
+          <MaterialCommunityIcons name="pencil" size={34} color={corIcone} />
+        </BotaoLateral>
+      )}
 
-      {/* Botão Nova Rotina (Central) */}
-      <TouchableOpacity 
-        style={[styles.centerButton, { backgroundColor: colors.primary }]}
-        onPress={onNovaRotina}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={centro.rotulo}
+        accessibilityState={{ disabled: !!centro.desativado }}
+        disabled={centro.desativado}
+        onPress={centro.onPress}
+        style={({ pressed }) => [
+          estilos.centro,
+          {
+            backgroundColor: superficieCentro.fundo,
+            opacity: centro.desativado ? 0.35 : pressed ? 0.75 : 1,
+          },
+        ]}
       >
-        <MaterialCommunityIcons name="calendar-plus" size={24} color={colors.textLight} />
-      </TouchableOpacity>
+        {centro.icone ? (
+          <MaterialCommunityIcons name={centro.icone} size={32} color={superficieCentro.texto} />
+        ) : (
+          <Text style={[estilos.textoCentro, { color: superficieCentro.texto }]}>{centro.texto}</Text>
+        )}
+      </Pressable>
 
-      {/* Botão Pictogramas */}
-      <TouchableOpacity 
-        style={styles.button}
-        onPress={onPictogramas}
+      <BotaoLateral
+        rotulo="PICTOGRAMAS"
+        desativado={pictogramasDesativado}
+        onPress={() => navigation.navigate('Pictogramas')}
       >
-        <FontAwesome5 name="images" size={24} color={colors.text} />
-        <Text style={[styles.buttonText, { color: colors.text }]}>PICTOGRAMAS</Text>
-      </TouchableOpacity>
+        <MaterialCommunityIcons name="image-outline" size={34} color={corIcone} />
+      </BotaoLateral>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
+const estilos = StyleSheet.create({
+  rodape: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#DDD',
-    height: 90,
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingTop: 10,
   },
-  button: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  lateral: {
     flex: 1,
-  },
-  centerButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
+    minHeight: 76,
+    borderRadius: 20,
     alignItems: 'center',
-    marginHorizontal: 10,
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    elevation: 2,
+    boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
   },
-  buttonText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    marginTop: 5,
-    textAlign: 'center',
+  rotulo: { fontSize: 13, fontWeight: '800', marginTop: 2 },
+  iconeDuplo: { width: 48, height: 36 },
+  pessoa: { position: 'absolute', right: 2, top: 0 },
+  peca: { position: 'absolute', left: 4, bottom: 0 },
+  centro: {
+    width: 78,
+    height: 58,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
   },
-  disabledButton: {
-    opacity: 0.4,
-  },
+  textoCentro: { fontSize: 20, fontWeight: '800' },
 });

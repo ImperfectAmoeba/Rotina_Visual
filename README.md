@@ -1,11 +1,34 @@
-# Sample Snack app
+# Rotina Visual
 
-Open the `App.js` file to start writing some code. You can preview the changes directly on your phone or tablet by scanning the **QR code** or use the iOS or Android emulators. When you're done, click **Save** and share the link!
+Aplicativo para responsáveis por dependentes autistas sensíveis a mudanças na rotina. Ajuda a acompanhar o dia e destaca mudanças inesperadas, preparando o dependente com antecedência.
 
-When you're ready to see everything that Expo provides (or if you want to use your own editor) you can **Download** your project and use it with [expo cli](https://docs.expo.dev/get-started/installation/#expo-cli)).
+Feito com React Native, Expo e JavaScript. Funciona sem internet: os dados ficam em um arquivo no próprio aparelho, que pode ser compartilhado com outras pessoas.
 
-All projects created in Snack are publicly available, so you can easily share the link to this project via link, or embed it on a web page with the `<>` button.
+## Como executar
 
-If you're having problems, you can tweet to us [@expo](https://twitter.com/expo) or ask in our [forums](https://forums.expo.dev/c/expo-dev-tools/61) or [Discord](https://chat.expo.dev/).
+```bash
+npm install
+npm start
+```
 
-Snack is Open Source. You can find the code on the [GitHub repo](https://github.com/expo/snack).
+Depois, abra o projeto no aplicativo Expo Go ou em um emulador.
+
+## Como testar
+
+```bash
+npm test
+```
+
+Os testes cobrem as regras de negócio de `src/domain`.
+
+## Estrutura
+
+| Pasta | Conteúdo |
+| --- | --- |
+| `src/pages` | Telas do aplicativo |
+| `src/components` | Componentes reutilizáveis |
+| `src/contexts` | Dados, tema, timer e mensagens compartilhados entre as telas |
+| `src/domain` | Regras de negócio, sem dependência de tela |
+| `src/services` | Acesso a recursos do aparelho: arquivos, notificações, senha e voz |
+| `src/data` | Catálogo dos pictogramas padrão |
+| `assets/pictogramas` | Imagens dos pictogramas padrão (veja o [LEIA-ME](assets/pictogramas/LEIA-ME.md)) |

@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "rotina_visual",
-    "slug": "snack-4d3791dc-3b0f-412a-b00f-d7cdf6d3affc",
+    "name": "Rotina Visual",
+    "slug": "rotina-visual",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -20,10 +20,35 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ],
+      "package": "com.anonymous.rotinavisual"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-notifications",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "O Rotina Visual usa o Face ID para voltar ao modo de edição."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Rotina Visual usa suas fotos em pictogramas e atividades.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      "expo-font"
+    ]
   }
 }
