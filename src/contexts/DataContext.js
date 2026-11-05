@@ -1,8 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { criarPictogramasPadrao } from '../data/pictogramasPadrao';
-import { dadosIniciais, normalizarDados } from '../domain/arquivo';
+import { Alert } from 'react-native';
+import padrao from '../data/padrao.json';
+import {
+  materializarImportacao,
+  normalizarDados,
+  precisaDoConteudoInicial,
+  validarImportacao,
+} from '../domain/arquivo';
 import { ArmazenamentoCheioError, carregarDados, salvarDados } from '../services/armazenamento';
-import { limparImagensSemUso } from '../services/imagens';
+import { gravarImagemBase64, limparImagensSemUso } from '../services/imagens';
 
 const DataContext = createContext(null);
 
@@ -10,6 +16,25 @@ export const mensagemDeErro = (erro) =>
   erro instanceof ArmazenamentoCheioError
     ? 'Armazenamento cheio, libere espaço e tente novamente.'
     : 'Não foi possível concluir. Tente novamente.';
+
+// Conteúdo com que o app começa (src/data/padrao.json). Configurações já salvas são mantidas.
+const carregarConteudoInicial = async (salvos) => {
+  const base = normalizarDados(salvos ?? {});
+  try {
+    const importado = validarImportacao(JSON.stringify(padrao));
+    if (!importado) throw new Error('o arquivo padrao.json é inválido.');
+    const conteudo = await materializarImportacao(importado, gravarImagemBase64);
+    const dados = { ...base, ...conteudo };
+    salvarDados(dados);
+    return dados;
+  } catch (erro) {
+    Alert.alert(
+      'Conteúdo inicial',
+      `Não foi possível carregar a rotina padrão: ${erro.message || mensagemDeErro(erro)}`,
+    );
+    return base;
+  }
+};
 
 export const DataProvider = ({ children }) => {
   const [dados, setDados] = useState(null);
@@ -19,9 +44,9 @@ export const DataProvider = ({ children }) => {
   useEffect(() => {
     (async () => {
       const salvos = await carregarDados().catch(() => null);
-      const iniciais = salvos
-        ? normalizarDados(salvos, criarPictogramasPadrao())
-        : dadosIniciais(criarPictogramasPadrao());
+      const iniciais = precisaDoConteudoInicial(salvos)
+        ? await carregarConteudoInicial(salvos)
+        : normalizarDados(salvos);
       dadosRef.current = iniciais;
       setDados(iniciais);
       try {

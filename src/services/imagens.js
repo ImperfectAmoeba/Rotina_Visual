@@ -2,13 +2,11 @@
 // arquivo: o caminho completo do app pode mudar entre instalações.
 import { File } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
-import { IMAGENS_PADRAO } from '../data/pictogramasPadrao';
 import { coletarImagens } from '../domain/arquivo';
 import { criarId } from '../domain/rotinas';
 import { pastaImagens, verificarEspaco } from './armazenamento';
 
 export const fonteDaImagem = (imagem) => {
-  if (imagem?.tipo === 'padrao') return IMAGENS_PADRAO[imagem.ref] ?? null;
   if (imagem?.tipo === 'arquivo') return { uri: new File(pastaImagens(), imagem.nome).uri };
   return null;
 };

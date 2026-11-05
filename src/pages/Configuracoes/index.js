@@ -1,14 +1,27 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  BackHandler,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ModalCor from '../../components/ModalCor';
 import { mensagemDeErro, useDados } from '../../contexts/DataContext';
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useSuspenderTimerNaTela } from '../../contexts/TimerContext';
+import { useTimer } from '../../contexts/TimerContext';
 import { CORES_SUGERIDAS } from '../../domain/cores';
 import {
+  baixarRotinas,
   compartilharRotinas,
   escolherArquivoImportacao,
   prepararImportacao,
@@ -17,15 +30,40 @@ import { pedirPermissao } from '../../services/notificacoes';
 
 const MINUTOS_MIN = 1;
 const MINUTOS_MAX = 60;
+const DURACAO_ANIMACAO_MS = 220;
 
-// Painel lateral de configurações. No modo de visualização, lembretes ficam bloqueados e
-// dados não aparecem; tema e cor continuam disponíveis para o dependente.
-export default function Configuracoes({ navigation }) {
+// Painel lateral de configurações, aberto sobre qualquer tela. No modo de visualização, lembretes
+// ficam bloqueados e dados não aparecem; tema e cor continuam disponíveis para o dependente.
+export default function Configuracoes({ aoFechar }) {
   const tema = useTheme();
   const insets = useSafeAreaInsets();
+  const { width: larguraTela } = useWindowDimensions();
   const { dados, atualizar } = useDados();
   const { confirmar, mostrarMensagem } = useFeedback();
-  useSuspenderTimerNaTela();
+  const { suspender } = useTimer();
+  const progresso = useRef(new Animated.Value(0)).current;
+
+  const animar = useCallback(
+    (destino, aoTerminar) =>
+      Animated.timing(progresso, {
+        toValue: destino,
+        duration: DURACAO_ANIMACAO_MS,
+        useNativeDriver: true,
+      }).start(aoTerminar),
+    [progresso],
+  );
+  const fechar = useCallback(() => animar(0, aoFechar), [animar, aoFechar]);
+
+  useEffect(() => suspender(), [suspender]);
+  useEffect(() => animar(1), [animar]);
+
+  useEffect(() => {
+    const assinatura = BackHandler.addEventListener('hardwareBackPress', () => {
+      fechar();
+      return true;
+    });
+    return () => assinatura.remove();
+  }, [fechar]);
 
   const { configuracoes, modo } = dados;
   const edicao = modo === 'edicao';
@@ -74,6 +112,14 @@ export default function Configuracoes({ navigation }) {
     }
   };
 
+  const baixar = async () => {
+    try {
+      if (await baixarRotinas(dados)) mostrarMensagem('Rotina salva no aparelho.');
+    } catch (erro) {
+      mostrarMensagem(mensagemDeErro(erro), 'erro');
+    }
+  };
+
   const importar = async () => {
     try {
       const { cancelado, importado } = await escolherArquivoImportacao();
@@ -100,8 +146,27 @@ export default function Configuracoes({ navigation }) {
   const separador = <View style={[estilos.separador, { backgroundColor: painel.textoSuave }]} />;
 
   return (
-    <View style={estilos.camada}>
-      <View style={[estilos.painel, { backgroundColor: painel.fundo }]}>
+    <View accessibilityViewIsModal style={estilos.camada}>
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { backgroundColor: tema.veu, opacity: progresso }]}
+      />
+      <Animated.View
+        style={[
+          estilos.painel,
+          {
+            backgroundColor: painel.fundo,
+            transform: [
+              {
+                translateX: progresso.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-larguraTela, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
         <ScrollView
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={[estilos.conteudo, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 20 }]}
@@ -110,7 +175,7 @@ export default function Configuracoes({ navigation }) {
             <Text accessibilityRole="header" style={[estilos.titulo, { color: painel.texto }]}>
               Configurações
             </Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Fechar" hitSlop={12} onPress={() => navigation.goBack()}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Fechar" hitSlop={12} onPress={fechar}>
               <MaterialCommunityIcons name="close" size={30} color={painel.texto} />
             </Pressable>
           </View>
@@ -118,26 +183,31 @@ export default function Configuracoes({ navigation }) {
           {separador}
           <Text style={[estilos.secao, { color: painel.texto }]}>Lembrete</Text>
           {edicao ? (
-            <View style={estilos.linha}>
-              <Switch
-                accessibilityLabel="Ativar lembrete"
-                value={configuracoes.notificacaoAtiva}
-                onValueChange={alternarLembrete}
-                trackColor={textoInterruptor}
-                thumbColor={tema.cartao.fundo}
-              />
-              <TextInput
-                accessibilityLabel="Minutos antes de terminar"
-                keyboardType="number-pad"
-                maxLength={2}
-                selectTextOnFocus
-                value={minutos}
-                onChangeText={digitarMinutos}
-                onBlur={conferirMinutos}
-                style={[estilos.minutos, { backgroundColor: tema.cartao.fundo, color: tema.cartao.texto }]}
-              />
-              <Text style={[estilos.descricao, { color: painel.texto }]}>minutos antes de terminar</Text>
-            </View>
+            <>
+              <View style={estilos.linha}>
+                <Switch
+                  accessibilityLabel="Ativar lembrete"
+                  value={configuracoes.notificacaoAtiva}
+                  onValueChange={alternarLembrete}
+                  trackColor={textoInterruptor}
+                  thumbColor={tema.cartao.fundo}
+                />
+                <TextInput
+                  accessibilityLabel="Minutos antes de terminar"
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  selectTextOnFocus
+                  value={minutos}
+                  onChangeText={digitarMinutos}
+                  onBlur={conferirMinutos}
+                  style={[estilos.minutos, { backgroundColor: tema.cartao.fundo, color: tema.cartao.texto }]}
+                />
+                <Text style={[estilos.descricao, { color: painel.texto }]}>minutos antes de terminar</Text>
+              </View>
+              <Text style={[estilos.descricao, estilos.notaLembrete, { color: painel.texto }]}>
+                Com o lembrete ligado, você também recebe um aviso quando cada atividade começa.
+              </Text>
+            </>
           ) : (
             <Text style={[estilos.descricao, { color: painel.texto }]}>
               Disponível apenas no modo de edição.
@@ -197,6 +267,18 @@ export default function Configuracoes({ navigation }) {
               </Pressable>
               <Pressable
                 accessibilityRole="button"
+                onPress={baixar}
+                style={[estilos.acao, { backgroundColor: tema.cartao.fundo }]}
+              >
+                <Text style={[estilos.textoAcao, { color: tema.cartao.texto }]}>Baixar rotina</Text>
+              </Pressable>
+              {Platform.OS === 'android' ? (
+                <Text style={[estilos.descricao, estilos.dica, { color: painel.texto }]}>
+                  Ao baixar, crie ou escolha uma pasta dentro de Downloads. O Android não permite salvar direto na pasta principal.
+                </Text>
+              ) : null}
+              <Pressable
+                accessibilityRole="button"
                 onPress={importar}
                 style={[estilos.acao, { backgroundColor: tema.cartao.fundo }]}
               >
@@ -205,8 +287,8 @@ export default function Configuracoes({ navigation }) {
             </>
           ) : null}
         </ScrollView>
-      </View>
-      <Pressable accessibilityLabel="Fechar configurações" style={estilos.fora} onPress={() => navigation.goBack()} />
+      </Animated.View>
+      <Pressable accessibilityLabel="Fechar configurações" style={estilos.fora} onPress={fechar} />
 
       {seletorAberto ? (
         <ModalCor
@@ -222,7 +304,13 @@ export default function Configuracoes({ navigation }) {
 }
 
 const estilos = StyleSheet.create({
-  camada: { flex: 1, flexDirection: 'row' },
+  // Acima do timer (zIndex 100) e abaixo das confirmações e mensagens do FeedbackProvider.
+  camada: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    zIndex: 150,
+    elevation: 36,
+  },
   painel: { width: '86%', maxWidth: 420 },
   fora: { flex: 1 },
   conteudo: { paddingHorizontal: 20 },
@@ -233,6 +321,8 @@ const estilos = StyleSheet.create({
   linha: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   minutos: { width: 50, height: 46, borderRadius: 10, textAlign: 'center', fontSize: 20 },
   descricao: { flexShrink: 1, fontSize: 16, lineHeight: 22 },
+  dica: { marginBottom: 10 },
+  notaLembrete: { marginTop: 10 },
   cores: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
   cor: {
     width: 52,

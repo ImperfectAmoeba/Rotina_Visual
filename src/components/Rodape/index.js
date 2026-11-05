@@ -29,7 +29,7 @@ function BotaoLateral({ rotulo, onPress, desativado, children }) {
 }
 
 // Rodapé fixo das telas. "centro" recebe { icone | texto, rotulo, onPress, desativado }.
-export default function Rodape({ centro, pictogramasDesativado, aoVerRotina }) {
+export default function Rodape({ centro, pictogramasDesativado, verRotinaLiberado, aoVerRotina }) {
   const tema = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
@@ -44,7 +44,7 @@ export default function Rodape({ centro, pictogramasDesativado, aoVerRotina }) {
       {modo === 'edicao' ? (
         <BotaoLateral
           rotulo="VER ROTINA"
-          desativado={!rotinaTocada}
+          desativado={!rotinaTocada && !verRotinaLiberado}
           onPress={aoVerRotina ?? entrarVisualizacao}
         >
           <View style={estilos.iconeDuplo}>

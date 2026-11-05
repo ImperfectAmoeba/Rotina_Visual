@@ -2,12 +2,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useConfiguracoes } from '../../contexts/ConfiguracoesContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export default function Cabecalho({ voltar }) {
   const tema = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { abrirConfiguracoes } = useConfiguracoes();
   const cor = tema.cabecalho.texto;
 
   return (
@@ -15,7 +17,7 @@ export default function Cabecalho({ voltar }) {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Configurações"
-        onPress={() => navigation.navigate('Configuracoes')}
+        onPress={abrirConfiguracoes}
         hitSlop={8}
         style={estilos.acao}
       >

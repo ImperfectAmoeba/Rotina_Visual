@@ -1,5 +1,5 @@
-// Lembrete antes do fim de uma atividade (RF015). Com o app aberto, a notificação não aparece
-// na barra do sistema: vira um aviso com botão "OK" dentro do app.
+// Avisos de início e de proximidade do fim de uma atividade (RF015). Com o app aberto, a
+// notificação não aparece na barra do sistema: vira um aviso com botão "OK" dentro do app.
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { dataParaChave } from '../domain/datas';
@@ -55,12 +55,15 @@ export const reagendarLembretes = async (rotinas, { notificacaoAtiva, lembreteMi
   const lembretes = proximosLembretes(rotinas, dataParaChave(agora), agora, lembreteMinutos);
   const unidade = lembreteMinutos === 1 ? 'minuto' : 'minutos';
   await Promise.all(
-    lembretes.map(({ quando, nome }) =>
+    lembretes.map(({ tipo, quando, nome }) =>
       Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Atividade perto do fim',
-          body: `${nome} termina em ${lembreteMinutos} ${unidade}.`,
-        },
+        content:
+          tipo === 'inicio'
+            ? { title: 'Nova atividade', body: `${nome} começa agora.` }
+            : {
+                title: 'Atividade perto do fim',
+                body: `${nome} termina em ${lembreteMinutos} ${unidade}.`,
+              },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
           date: quando,

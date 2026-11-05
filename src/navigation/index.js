@@ -4,7 +4,6 @@ import { useMemo } from 'react';
 import { useDados } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 import Categoria from '../pages/Categoria';
-import Configuracoes from '../pages/Configuracoes';
 import Home from '../pages/Home';
 import Pictogramas from '../pages/Pictogramas';
 import Rotina from '../pages/Rotina';
@@ -12,23 +11,6 @@ import RotinaForm from '../pages/RotinaForm';
 import Visualizacao from '../pages/Visualizacao';
 
 const Stack = createStackNavigator();
-
-// O painel de configurações entra pela esquerda sobre a tela atual, como no protótipo.
-const painelLateral = ({ current, layouts }) => ({
-  cardStyle: {
-    transform: [
-      {
-        translateX: current.progress.interpolate({
-          inputRange: [0, 1],
-          outputRange: [-layouts.screen.width, 0],
-        }),
-      },
-    ],
-  },
-  overlayStyle: {
-    opacity: current.progress.interpolate({ inputRange: [0, 1], outputRange: [0, 0.55] }),
-  },
-});
 
 export default function Navegacao() {
   const { dados } = useDados();
@@ -56,17 +38,6 @@ export default function Navegacao() {
           )}
           <Stack.Screen name="Pictogramas" component={Pictogramas} />
           <Stack.Screen name="Categoria" component={Categoria} />
-          <Stack.Screen
-            name="Configuracoes"
-            component={Configuracoes}
-            options={{
-              presentation: 'transparentModal',
-              cardOverlayEnabled: true,
-              cardStyleInterpolator: painelLateral,
-              gestureEnabled: false,
-              cardStyle: { backgroundColor: 'transparent' },
-            }}
-          />
         </Stack.Group>
       </Stack.Navigator>
     </NavigationContainer>

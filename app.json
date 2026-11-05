@@ -23,8 +23,6 @@
       "edgeToEdgeEnabled": true,
       "permissions": [
         "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT",
-        "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT"
       ],
       "package": "com.anonymous.rotinavisual"
@@ -49,6 +47,11 @@
         }
       ],
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ed2e3edc-82f4-4fa7-b953-a81d819817be"
+      }
+    }
   }
 }

@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Inicializacao from './src/components/Inicializacao';
 import TimerVisual from './src/components/TimerVisual';
+import { ConfiguracoesProvider } from './src/contexts/ConfiguracoesContext';
 import { DataProvider, useDados } from './src/contexts/DataContext';
 import { FeedbackProvider } from './src/contexts/FeedbackContext';
 import { useTheme } from './src/contexts/ThemeContext';
@@ -16,10 +17,12 @@ function Conteudo() {
   return (
     <TimerProvider>
       <FeedbackProvider>
-        <StatusBar style={tema.escuro ? 'light' : 'dark'} />
-        <Navegacao />
-        <TimerVisual />
-        <Inicializacao />
+        <ConfiguracoesProvider>
+          <StatusBar style={tema.escuro ? 'light' : 'dark'} />
+          <Navegacao />
+          <TimerVisual />
+          <Inicializacao />
+        </ConfiguracoesProvider>
       </FeedbackProvider>
     </TimerProvider>
   );

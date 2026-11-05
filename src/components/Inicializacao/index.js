@@ -26,7 +26,7 @@ export default function Inicializacao() {
     (async () => {
       const aceitou = await confirmar({
         titulo: 'Lembretes',
-        mensagem: 'Deseja receber um lembrete 5 minutos antes do fim de cada atividade?',
+        mensagem: 'Deseja receber um aviso quando cada atividade começar e um lembrete 5 minutos antes do fim?',
       });
       const permitido = aceitou ? await pedirPermissao() : false;
       atualizar((d) => ({

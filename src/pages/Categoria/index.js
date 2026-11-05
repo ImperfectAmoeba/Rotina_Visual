@@ -1,8 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import BotaoIcone from '../../components/BotaoIcone';
+import BarraAcoes from '../../components/BarraAcoes';
 import Cabecalho from '../../components/Cabecalho';
 import ImagemSegura from '../../components/ImagemSegura';
 import ModalPictograma from '../../components/ModalPictograma';
@@ -10,7 +9,7 @@ import Rodape from '../../components/Rodape';
 import { useDados } from '../../contexts/DataContext';
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { fraseCompleta, listarCategorias } from '../../domain/pictogramas';
+import { fraseCompleta } from '../../domain/pictogramas';
 import { falar } from '../../services/voz';
 
 function Fala({ texto, cor }) {
@@ -31,14 +30,12 @@ function Fala({ texto, cor }) {
 // seleciona o pictograma para editar ou excluir (RF012, RF013).
 export default function Categoria({ navigation, route }) {
   const tema = useTheme();
-  const insets = useSafeAreaInsets();
   const { dados, atualizar } = useDados();
   const { confirmar, mostrarMensagem } = useFeedback();
   const [selecionadoId, setSelecionadoId] = useState(null);
   const [formulario, setFormulario] = useState(null);
 
   const { categoria } = route.params;
-  const categorias = useMemo(() => listarCategorias(dados.pictogramas), [dados.pictogramas]);
   const pictogramas = useMemo(
     () => dados.pictogramas.filter((p) => p.categoria === categoria),
     [dados.pictogramas, categoria],
@@ -71,7 +68,7 @@ export default function Categoria({ navigation, route }) {
           style={[estilos.trilhoRolagem, { backgroundColor: tema.cabecalho.fundo }]}
           contentContainerStyle={estilos.trilho}
         >
-          {categorias.map((c) => {
+          {dados.categorias.map((c) => {
             const ativa = c.nome === categoria;
             return (
               <Pressable
@@ -136,23 +133,15 @@ export default function Categoria({ navigation, route }) {
       </View>
 
       {selecionado ? (
-        <View style={[estilos.barraAcoes, { backgroundColor: tema.mudanca.fundo, paddingBottom: insets.bottom + 12 }]}>
-          <BotaoIcone
-            icone="pencil"
-            rotulo={`Editar ${selecionado.nome}`}
-            superficie={tema.pilulaMudanca}
-            onPress={() => setFormulario({ pictograma: selecionado })}
-          />
-          <BotaoIcone
-            icone="trash-can-outline"
-            rotulo={`Excluir ${selecionado.nome}`}
-            superficie={tema.pilulaMudanca}
-            onPress={excluir}
-          />
-        </View>
+        <BarraAcoes
+          nome={selecionado.nome}
+          aoEditar={() => setFormulario({ pictograma: selecionado })}
+          aoExcluir={excluir}
+        />
       ) : (
         <Rodape
           pictogramasDesativado
+          verRotinaLiberado
           centro={{
             icone: 'image-plus',
             rotulo: 'Novo pictograma',
@@ -206,11 +195,4 @@ const estilos = StyleSheet.create({
   },
   textoFala: { flexShrink: 1, fontSize: 17, textAlign: 'center' },
   vazio: { fontSize: 17, lineHeight: 24, textAlign: 'center', margin: 20 },
-  barraAcoes: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-  },
 });

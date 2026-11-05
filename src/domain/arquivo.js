@@ -1,6 +1,7 @@
 // Formato do arquivo local e do arquivo compartilhado (RF016). Funções puras.
 import { COR_PADRAO } from './cores.js';
 import { dataValida, horaParaMinutos, horaValida } from './datas.js';
+import { completarCategorias } from './pictogramas.js';
 import { criarId } from './rotinas.js';
 
 export const VERSAO_ARQUIVO = 1;
@@ -14,25 +15,50 @@ export const configuracoesPadrao = () => ({
   corDestaque: COR_PADRAO,
 });
 
-export const dadosIniciais = (pictogramasPadrao) => ({
+export const dadosIniciais = () => ({
   versao: VERSAO_ARQUIVO,
   modo: 'edicao',
   configuracoes: configuracoesPadrao(),
   rotinas: [],
-  pictogramas: pictogramasPadrao,
+  pictogramas: [],
+  categorias: [],
   concluidas: {},
 });
 
+// Versões anteriores traziam imagens provisórias (tipo "padrao"), que não existem mais.
+const provisoria = (imagem) => imagem?.tipo === 'padrao';
+
+const removerProvisorios = ({ rotinas = [], pictogramas = [], categorias }) => {
+  const restantes = pictogramas.filter((p) => !provisoria(p.imagem));
+  return {
+    rotinas: rotinas.map((r) => ({
+      ...r,
+      atividades: r.atividades.map((a) => (provisoria(a.imagem) ? { ...a, imagem: null } : a)),
+    })),
+    pictogramas: restantes,
+    categorias: completarCategorias(categorias?.filter((c) => !provisoria(c.imagem)), restantes),
+  };
+};
+
+// Primeira abertura, ou dados salvos que só têm os pictogramas provisórios e nenhuma rotina.
+export const precisaDoConteudoInicial = (salvos) =>
+  !salvos ||
+  (!salvos.rotinas?.length &&
+    salvos.pictogramas?.length > 0 &&
+    salvos.pictogramas.every((p) => provisoria(p.imagem)));
+
 // Garante que um arquivo salvo por outra versão tenha todos os campos esperados.
-export const normalizarDados = (bruto, pictogramasPadrao) => ({
-  ...dadosIniciais(pictogramasPadrao),
+export const normalizarDados = (bruto) => ({
+  ...dadosIniciais(),
   ...bruto,
+  ...removerProvisorios(bruto),
   configuracoes: { ...configuracoesPadrao(), ...bruto.configuracoes },
 });
 
 export const coletarImagens = (dados) => [
   ...dados.rotinas.flatMap((r) => r.atividades.map((a) => a.imagem)),
   ...dados.pictogramas.map((p) => p.imagem),
+  ...dados.categorias.map((c) => c.imagem),
 ].filter((imagem) => imagem?.tipo === 'arquivo');
 
 // Monta o conteúdo compartilhado. Configurações de tema e cor ficam de fora, e cada imagem
@@ -54,7 +80,10 @@ export const montarExportacao = async (dados, lerBase64) => {
   const pictogramas = await Promise.all(
     dados.pictogramas.map(async (p) => ({ ...p, imagem: await embutir(p.imagem) })),
   );
-  return { tipo: TIPO_EXPORTACAO, versao: VERSAO_ARQUIVO, rotinas, pictogramas };
+  const categorias = await Promise.all(
+    dados.categorias.map(async (c) => ({ ...c, imagem: await embutir(c.imagem) })),
+  );
+  return { tipo: TIPO_EXPORTACAO, versao: VERSAO_ARQUIVO, rotinas, pictogramas, categorias };
 };
 
 const texto = (valor) => typeof valor === 'string' && valor.trim().length > 0;
@@ -91,6 +120,15 @@ const rotinaValida = (r) =>
 const pictogramaValido = (p) =>
   p && texto(p.id) && texto(p.nome) && texto(p.categoria) && imagemValida(p.imagem) && p.imagem;
 
+const categoriaValida = (c) => c && texto(c.nome) && imagemValida(c.imagem) && c.imagem;
+
+// Arquivos gerados antes de os grupos terem capa própria não trazem a lista.
+const categoriasValidas = (categorias) =>
+  categorias === undefined ||
+  (Array.isArray(categorias) &&
+    categorias.every(categoriaValida) &&
+    new Set(categorias.map((c) => c.nome)).size === categorias.length);
+
 // Retorna os dados prontos para importar, ou null se o arquivo não for válido.
 export const validarImportacao = (conteudo) => {
   let bruto;
@@ -102,11 +140,12 @@ export const validarImportacao = (conteudo) => {
   if (bruto?.tipo !== TIPO_EXPORTACAO || bruto.versao !== VERSAO_ARQUIVO) return null;
   if (!Array.isArray(bruto.rotinas) || !bruto.rotinas.every(rotinaValida)) return null;
   if (!Array.isArray(bruto.pictogramas) || !bruto.pictogramas.every(pictogramaValido)) return null;
+  if (!categoriasValidas(bruto.categorias)) return null;
 
   const dias = bruto.rotinas.flatMap((r) => [...new Set(r.diasSemana)]);
   if (new Set(dias).size !== dias.length) return null;
 
-  return { rotinas: bruto.rotinas, pictogramas: bruto.pictogramas };
+  return removerProvisorios(bruto);
 };
 
 // Troca as imagens embutidas por arquivos locais; o nome é sempre gerado aqui, nunca lido do arquivo.
@@ -128,5 +167,8 @@ export const materializarImportacao = async (importado, gravarBase64) => {
   const pictogramas = await Promise.all(
     importado.pictogramas.map(async (p) => ({ ...p, imagem: await materializar(p.imagem) })),
   );
-  return { rotinas, pictogramas };
+  const categorias = await Promise.all(
+    importado.categorias.map(async (c) => ({ ...c, imagem: await materializar(c.imagem) })),
+  );
+  return { rotinas, pictogramas, categorias };
 };

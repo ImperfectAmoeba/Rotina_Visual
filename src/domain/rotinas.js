@@ -144,16 +144,20 @@ export const atividadeAtual = (rotinas, data, minutos) => {
   return emAndamento.find((a) => a.atvInesperada) ?? emAndamento[0] ?? null;
 };
 
-// Lembretes dos próximos dias, em ordem, respeitando o limite do sistema operacional (RF015).
+// Avisos de início e de fim dos próximos dias, em ordem, respeitando o limite do sistema
+// operacional (RF015).
 export const proximosLembretes = (rotinas, hojeChave, agora, minutosAntes, limite = 60) => {
   const lembretes = [];
   for (let i = 0; i < 7; i += 1) {
     const data = somarDias(hojeChave, i);
     for (const atividade of atividadesDoDia(rotinas, data)) {
       const inicio = instante(data, atividade.hrInicio);
+      if (inicio > agora) {
+        lembretes.push({ tipo: 'inicio', quando: inicio, nome: atividade.nome });
+      }
       const quando = new Date(instante(data, atividade.hrTermino).getTime() - minutosAntes * 60000);
       if (quando > agora && quando > inicio) {
-        lembretes.push({ quando, nome: atividade.nome });
+        lembretes.push({ tipo: 'fim', quando, nome: atividade.nome });
       }
     }
   }

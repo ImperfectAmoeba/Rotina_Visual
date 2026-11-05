@@ -1,10 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { mensagemDeErro, useDados } from '../../contexts/DataContext';
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { listarCategorias, validarPictograma } from '../../domain/pictogramas';
+import { validarCategoria, validarPictograma } from '../../domain/pictogramas';
 import { criarId } from '../../domain/rotinas';
 import { escolherImagem } from '../../services/imagens';
 import Botao from '../Botao';
@@ -23,14 +23,13 @@ export default function ModalPictograma({ pictograma, categoriaInicial, aoFechar
   const [frase, setFrase] = useState(pictograma?.frase ?? '');
   const [categoria, setCategoria] = useState(pictograma?.categoria ?? categoriaInicial ?? '');
   const [personalizado, setPersonalizado] = useState(false);
+  const [capa, setCapa] = useState(null);
   const [erro, setErro] = useState(null);
 
-  const categorias = useMemo(() => listarCategorias(dados.pictogramas), [dados.pictogramas]);
-
-  const importarImagem = async () => {
+  const importarPara = async (definir) => {
     try {
       const escolhida = await escolherImagem();
-      if (escolhida) setImagem(escolhida);
+      if (escolhida) definir(escolhida);
     } catch (e) {
       setErro(mensagemDeErro(e));
     }
@@ -44,13 +43,16 @@ export default function ModalPictograma({ pictograma, categoriaInicial, aoFechar
       categoria: categoria.trim(),
       imagem,
     };
-    const invalido = validarPictograma(novo);
+    const novaCategoria = personalizado ? { nome: novo.categoria, imagem: capa } : null;
+    const invalido =
+      validarPictograma(novo) ?? (novaCategoria && validarCategoria(novaCategoria, dados.categorias));
     if (invalido) {
       setErro(invalido);
       return;
     }
     const resultado = atualizar((d) => ({
       ...d,
+      categorias: novaCategoria ? [...d.categorias, novaCategoria] : d.categorias,
       pictogramas: pictograma
         ? d.pictogramas.map((p) => (p.id === novo.id ? novo : p))
         : [...d.pictogramas, novo],
@@ -74,7 +76,7 @@ export default function ModalPictograma({ pictograma, categoriaInicial, aoFechar
         style={[estilos.campo, { color: cor, borderBottomColor: tema.borda }]}
       />
 
-      <Pressable accessibilityRole="button" accessibilityLabel="Importar foto" onPress={importarImagem} style={estilos.imagem}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Importar foto" onPress={() => importarPara(setImagem)} style={estilos.imagem}>
         <ImagemSegura imagem={imagem} tamanho={132} raio={18} />
         <Text style={[estilos.textoImagem, { color: cor }]}>{imagem ? 'TROCAR FOTO' : 'IMPORTAR FOTO'}</Text>
       </Pressable>
@@ -90,7 +92,7 @@ export default function ModalPictograma({ pictograma, categoriaInicial, aoFechar
       />
 
       <Text style={[estilos.uso, { backgroundColor: tema.controle.fundo, color: tema.controle.texto }]}>USO</Text>
-      {categorias.map((c) => {
+      {dados.categorias.map((c) => {
         const selecionada = !personalizado && categoria === c.nome;
         const fundo = selecionada ? tema.pilula : tema.cartao;
         return (
@@ -109,15 +111,28 @@ export default function ModalPictograma({ pictograma, categoriaInicial, aoFechar
         );
       })}
       {personalizado ? (
-        <TextInput
-          accessibilityLabel="Nome do uso personalizado"
-          autoFocus
-          placeholder="Nome do uso personalizado"
-          placeholderTextColor={tema.cartao.textoSuave}
-          value={categoria}
-          onChangeText={setCategoria}
-          style={[estilos.opcao, estilos.textoOpcao, { color: cor, borderColor: tema.borda }]}
-        />
+        <>
+          <TextInput
+            accessibilityLabel="Nome do uso personalizado"
+            autoFocus
+            placeholder="Nome do uso personalizado"
+            placeholderTextColor={tema.cartao.textoSuave}
+            value={categoria}
+            onChangeText={setCategoria}
+            style={[estilos.opcao, estilos.textoOpcao, { color: cor, borderColor: tema.borda }]}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Importar foto de capa do grupo"
+            onPress={() => importarPara(setCapa)}
+            style={estilos.imagem}
+          >
+            <ImagemSegura imagem={capa} tamanho={96} raio={14} />
+            <Text style={[estilos.textoImagem, { color: cor }]}>
+              {capa ? 'TROCAR FOTO DE CAPA' : 'IMPORTAR FOTO DE CAPA'}
+            </Text>
+          </Pressable>
+        </>
       ) : (
         <Pressable
           accessibilityRole="button"

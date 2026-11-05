@@ -30,5 +30,4 @@ Os testes cobrem as regras de negócio de `src/domain`.
 | `src/contexts` | Dados, tema, timer e mensagens compartilhados entre as telas |
 | `src/domain` | Regras de negócio, sem dependência de tela |
 | `src/services` | Acesso a recursos do aparelho: arquivos, notificações, senha e voz |
-| `src/data` | Catálogo dos pictogramas padrão |
-| `assets/pictogramas` | Imagens dos pictogramas padrão (veja o [LEIA-ME](assets/pictogramas/LEIA-ME.md)) |
+| `src/data` | Conteúdo com que o app começa na primeira abertura (`padrao.json`) |
